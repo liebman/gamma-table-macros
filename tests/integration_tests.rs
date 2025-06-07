@@ -140,9 +140,9 @@ fn test_default_max_value() {
 fn test_minimum_size_table() {
     // Test that a table with size 3 (minimum) works correctly
     assert_eq!(TEST_MINIMUM_SIZE_TABLE.len(), 3);
-    assert_eq!(TEST_MINIMUM_SIZE_TABLE[0], 0);   // Always 0 at start
-    assert_eq!(TEST_MINIMUM_SIZE_TABLE[2], 2);   // max_value defaults to size-1 = 2
-    
+    assert_eq!(TEST_MINIMUM_SIZE_TABLE[0], 0); // Always 0 at start
+    assert_eq!(TEST_MINIMUM_SIZE_TABLE[2], 2); // max_value defaults to size-1 = 2
+
     // Values should be monotonically increasing
     assert!(TEST_MINIMUM_SIZE_TABLE[1] >= TEST_MINIMUM_SIZE_TABLE[0]);
     assert!(TEST_MINIMUM_SIZE_TABLE[2] >= TEST_MINIMUM_SIZE_TABLE[1]);

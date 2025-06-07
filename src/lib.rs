@@ -1,48 +1,80 @@
-/// Procedural macro for generating gamma lookup tables.
-///
-/// By default uses gamma encoding (input^gamma).
-/// When decoding=true, uses gamma correction/decoding (input^(1/gamma)).
-///
-/// # Parameters
-/// - `name`: The name of the const table to be generated
-/// - `entry_type`: The unsigned integer type of each entry (u8, u16, u32, u64)
-/// - `gamma`: The gamma value (float)
-/// - `size`: Number of table entries (minimum 3)
-/// - `max_value`: Maximum output value to limit brightness (optional, defaults to size-1)
-/// - `decoding`: Use gamma correction/decoding instead of encoding (optional, defaults to false)
-///
-/// # Examples
-///
-/// Gamma encoding (default):
-/// ```
-/// use gamma_table_macros::gamma_table;
-///
-/// gamma_table! {
-///     name: GAMMA_ENCODED_TABLE,
-///     entry_type: u8,
-///     gamma: 2.2,
-///     size: 256
-/// }
-/// ```
-///
-/// Gamma correction/decoding:
-/// ```
-/// use gamma_table_macros::gamma_table;
-///
-/// gamma_table! {
-///     name: GAMMA_DECODED_TABLE,
-///     entry_type: u8,
-///     gamma: 2.2,
-///     size: 256,
-///     decoding: true
-/// }
-/// ```
 extern crate proc_macro;
 
 use proc_macro2::TokenStream;
 use quote::quote;
 use syn::{parse_macro_input, Error, LitBool, LitFloat, LitInt};
 
+/// Generates a gamma lookup table as a procedural macro.
+///
+/// This macro generates a `const` array with gamma-encoded or gamma-corrected values at compile time.
+/// The generated table can be used for fast brightness/gamma correction in embedded, graphics, or image processing applications.
+///
+/// # Parameters
+/// - `name`: `IDENT`  
+///   The name of the generated constant table (e.g., `GAMMA_TABLE_22`).  
+/// - `entry_type`: `Type`  
+///   The unsigned integer type for table entries (`u8`, `u16`, `u32`, or `u64`).  
+/// - `gamma`: `float`  
+///   The gamma value to use for encoding or decoding. Must be positive.  
+/// - `size`: `integer`  
+///   The number of entries in the table. Must be at least 3.  
+/// - `max_value`: `integer` (optional, default `size-1`)  
+///   The maximum output value for the table.
+///   Useful for brightness limiting or matching hardware constraints.  
+/// - `decoding`: `bool` (optional, default false)  
+///   If `true`, generates a gamma correction (decoding) table using `input^(1/gamma)`.  
+///   If `false` or omitted, generates a gamma encoding table using `input^gamma`.
+///
+/// # Gamma Processing
+/// - **Gamma Encoding (default):**  
+///   `output = (input / max_input) ^ gamma * max_value`  
+///   Makes mid-tones darker, suitable for preparing data for display.
+/// - **Gamma Decoding:**  
+///   `output = (input / max_input) ^ (1/gamma) * max_value`  
+///   Makes mid-tones brighter, suitable for correcting gamma-encoded data.
+///
+/// # Output
+/// Generates a `const` array named as specified by `name`, with type `[entry_type; size]`.
+///
+/// # Errors
+/// - Fails to compile if required parameters are missing or have invalid types.
+/// - Fails if `gamma` is not positive.
+/// - Fails if `size` is less than 3.
+/// - Fails if `max_value` exceeds the maximum for the chosen `entry_type`.
+///
+/// # Examples
+/// Basic gamma encoding table:
+/// ```
+/// use gamma_table_macros::gamma_table;
+///
+/// gamma_table! {
+///     name: GAMMA_TABLE_22,
+///     entry_type: u8,
+///     gamma: 2.2,
+///     size: 256
+/// }
+/// ```
+///
+/// Gamma correction (decoding) table with brightness limiting:
+/// ```
+/// use gamma_table_macros::gamma_table;
+///
+/// gamma_table! {
+///     name: GAMMA_CORRECTED,
+///     entry_type: u16,
+///     gamma: 2.4,
+///     size: 1024,
+///     max_value: 1000,
+///     decoding: true
+/// }
+/// ```
+///
+/// # Usage
+/// The generated table can be used as a `const` array in your code:
+/// ```ignore
+/// // After macro expansion:
+/// pub const GAMMA_TABLE_22: [u8; 256] = [0, 0, 0, 0, 0, /* ... 251 more values */ ];
+/// ```
 #[proc_macro]
 pub fn gamma_table(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     let input = parse_macro_input!(input as GammaTableInput);
@@ -103,7 +135,7 @@ impl syn::parse::Parse for GammaTableInput {
                 _ => {
                     return Err(Error::new(
                         ident.span(),
-                        format!("Unknown parameter: {}", ident),
+                        format!("Unknown parameter: {ident}"),
                     ))
                 }
             }
@@ -183,7 +215,10 @@ fn generate_gamma_table(input: GammaTableInput) -> syn::Result<TokenStream> {
     } else {
         return Err(Error::new(
             name.span(),
-            format!("Unsupported entry_type: {}. Supported types are: u8, u16, u32, u64", quote!(#entry_type)),
+            format!(
+                "Unsupported entry_type: {}. Supported types are: u8, u16, u32, u64",
+                quote!(#entry_type)
+            ),
         ));
     }
 
@@ -360,7 +395,7 @@ mod tests {
             size: 10,
             unknown_param: 42
         };
-        
+
         let result = syn::parse2::<GammaTableInput>(tokens);
         assert!(result.is_err());
     }
@@ -407,7 +442,7 @@ mod tests {
     #[test]
     fn test_parsing_invalid_parameter_types() {
         // Test sending wrong types for each parameter
-        
+
         // name expects IDENT, sending int
         let tokens: proc_macro2::TokenStream = quote! {
             name: 123,
@@ -417,7 +452,7 @@ mod tests {
         };
         let result = syn::parse2::<GammaTableInput>(tokens);
         assert!(result.is_err());
-        
+
         // entry_type expects Type, sending string
         let tokens: proc_macro2::TokenStream = quote! {
             name: TEST_TABLE,
@@ -427,7 +462,7 @@ mod tests {
         };
         let result = syn::parse2::<GammaTableInput>(tokens);
         assert!(result.is_err());
-        
+
         // gamma expects LitFloat, sending string
         let tokens: proc_macro2::TokenStream = quote! {
             name: TEST_TABLE,
@@ -437,7 +472,7 @@ mod tests {
         };
         let result = syn::parse2::<GammaTableInput>(tokens);
         assert!(result.is_err());
-        
+
         // size expects LitInt, sending float
         let tokens: proc_macro2::TokenStream = quote! {
             name: TEST_TABLE,
@@ -447,7 +482,7 @@ mod tests {
         };
         let result = syn::parse2::<GammaTableInput>(tokens);
         assert!(result.is_err());
-        
+
         // size expects LitInt, sending string
         let tokens: proc_macro2::TokenStream = quote! {
             name: TEST_TABLE,
@@ -457,7 +492,7 @@ mod tests {
         };
         let result = syn::parse2::<GammaTableInput>(tokens);
         assert!(result.is_err());
-        
+
         // max_value expects LitInt, sending float
         let tokens: proc_macro2::TokenStream = quote! {
             name: TEST_TABLE,
@@ -468,7 +503,7 @@ mod tests {
         };
         let result = syn::parse2::<GammaTableInput>(tokens);
         assert!(result.is_err());
-        
+
         // max_value expects LitInt, sending string
         let tokens: proc_macro2::TokenStream = quote! {
             name: TEST_TABLE,
@@ -479,7 +514,7 @@ mod tests {
         };
         let result = syn::parse2::<GammaTableInput>(tokens);
         assert!(result.is_err());
-        
+
         // decoding expects LitBool, sending float
         let tokens: proc_macro2::TokenStream = quote! {
             name: TEST_TABLE,
@@ -490,7 +525,7 @@ mod tests {
         };
         let result = syn::parse2::<GammaTableInput>(tokens);
         assert!(result.is_err());
-        
+
         // decoding expects LitBool, sending string
         let tokens: proc_macro2::TokenStream = quote! {
             name: TEST_TABLE,
@@ -516,7 +551,10 @@ mod tests {
         };
         let result = generate_gamma_table(input);
         assert!(result.is_err());
-        assert!(result.unwrap_err().to_string().contains("max_value (300) exceeds the maximum value (255)"));
+        assert!(result
+            .unwrap_err()
+            .to_string()
+            .contains("max_value (300) exceeds the maximum value (255)"));
 
         // Test u16 overflow
         let input = GammaTableInput {
@@ -529,7 +567,10 @@ mod tests {
         };
         let result = generate_gamma_table(input);
         assert!(result.is_err());
-        assert!(result.unwrap_err().to_string().contains("max_value (70000) exceeds the maximum value (65535)"));
+        assert!(result
+            .unwrap_err()
+            .to_string()
+            .contains("max_value (70000) exceeds the maximum value (65535)"));
 
         // Test u32 overflow
         let input = GammaTableInput {
@@ -542,7 +583,10 @@ mod tests {
         };
         let result = generate_gamma_table(input);
         assert!(result.is_err());
-        assert!(result.unwrap_err().to_string().contains("max_value (5000000000) exceeds the maximum value (4294967295)"));
+        assert!(result
+            .unwrap_err()
+            .to_string()
+            .contains("max_value (5000000000) exceeds the maximum value (4294967295)"));
 
         // Test valid max_value for u8
         let input = GammaTableInput {
@@ -591,7 +635,10 @@ mod tests {
         };
         let result = generate_gamma_table(input);
         assert!(result.is_err());
-        assert!(result.unwrap_err().to_string().contains("Unsupported entry_type"));
+        assert!(result
+            .unwrap_err()
+            .to_string()
+            .contains("Unsupported entry_type"));
 
         // Test another unsupported entry type
         let input = GammaTableInput {
@@ -604,6 +651,9 @@ mod tests {
         };
         let result = generate_gamma_table(input);
         assert!(result.is_err());
-        assert!(result.unwrap_err().to_string().contains("Unsupported entry_type"));
+        assert!(result
+            .unwrap_err()
+            .to_string()
+            .contains("Unsupported entry_type"));
     }
 }
