@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased] - ReleaseDate
 
+## [0.1.0] - 2025-06-07
+
 ### Added
 
 - Initial release of the gamma table procedural macro
@@ -24,4 +26,4 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Security
 
 <!-- next-url -->
-[Unreleased]: https://github.com/liebman/gamma-table-macros/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/user/gamma-table-macros/compare/v0.1.0...HEAD
