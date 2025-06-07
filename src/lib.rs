@@ -37,13 +37,14 @@
 ///     decoding: true
 /// }
 /// ```
-use proc_macro::TokenStream;
-use proc_macro2::TokenStream as TokenStream2;
+extern crate proc_macro;
+
+use proc_macro2::TokenStream;
 use quote::quote;
 use syn::{parse_macro_input, Error, LitBool, LitFloat, LitInt};
 
 #[proc_macro]
-pub fn gamma_table(input: TokenStream) -> TokenStream {
+pub fn gamma_table(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     let input = parse_macro_input!(input as GammaTableInput);
 
     match generate_gamma_table(input) {
@@ -128,7 +129,7 @@ impl syn::parse::Parse for GammaTableInput {
     }
 }
 
-fn generate_gamma_table(input: GammaTableInput) -> syn::Result<TokenStream2> {
+fn generate_gamma_table(input: GammaTableInput) -> syn::Result<TokenStream> {
     let name = &input.name;
     let entry_type = &input.entry_type;
     let gamma = input.gamma;
@@ -151,7 +152,7 @@ fn generate_gamma_table(input: GammaTableInput) -> syn::Result<TokenStream2> {
     let values = generate_table_values(size, gamma, max_value, decoding)?;
 
     // Convert values to tokens with proper casting
-    let value_tokens: Vec<TokenStream2> = values
+    let value_tokens: Vec<TokenStream> = values
         .iter()
         .map(|&v| quote! { #v as #entry_type })
         .collect();
