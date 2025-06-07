@@ -1,0 +1,5 @@
+error: max_value (1023) exceeds the maximum value (255) that can be stored in entry_type u8
+ --> tests/compile_fail/values_too_large_for_type.rs:9:11
+  |
+9 |     name: OVERFLOW_TABLE,
+  |           ^^^^^^^^^^^^^^
