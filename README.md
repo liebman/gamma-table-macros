@@ -33,8 +33,7 @@ gamma_table! {
     name: GAMMA_ENCODED_TABLE,
     entry_type: u8,
     gamma: 2.2,
-    size: 256,
-    max_value: 255
+    size: 256
 }
 
 fn main() {
@@ -55,7 +54,6 @@ gamma_table! {
     entry_type: u8,
     gamma: 2.2,
     size: 256,
-    max_value: 255,
     decoding: true
 }
 
@@ -86,7 +84,7 @@ gamma_table! {
 - **`entry_type`** (required): The unsigned integer type for each entry (`u8`, `u16`, `u32`, `u64`)
 - **`gamma`** (required): The gamma value (positive float)
 - **`size`** (required): Number of table entries
-- **`max_value`** (required): Maximum output value to limit brightness
+- **`max_value`** (optional): Maximum output value to limit brightness (defaults to `size-1`)
 - **`decoding`** (optional): Use gamma correction/decoding instead of encoding (defaults to `false`)
 
 ## Mathematics

@@ -5,8 +5,7 @@ gamma_table! {
     name: GAMMA_ENCODING_TABLE,
     entry_type: u8,
     gamma: 2.2,
-    size: 256,
-    max_value: 255
+    size: 256
 }
 
 // Generate a gamma correction/decoding table (traditional gamma correction)
@@ -15,7 +14,6 @@ gamma_table! {
     entry_type: u8,
     gamma: 2.2,
     size: 256,
-    max_value: 255,
     decoding: true
 }
 
@@ -24,8 +22,7 @@ gamma_table! {
     name: GAMMA_TABLE_16BIT,
     entry_type: u16,
     gamma: 1.8,
-    size: 65536,
-    max_value: 65535
+    size: 65536
 }
 
 // Generate a brightness-limited table for LED control

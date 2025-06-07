@@ -21,6 +21,12 @@ This is a Rust procedural macro crate that generates compile-time gamma lookup t
 - Test functions: descriptive names with `test_` prefix
 - Internal functions: snake_case with clear purpose
 
+### Parameter Guidelines
+
+- `max_value` is optional and defaults to `size-1` for convenience
+- Only specify `max_value` when you need brightness limiting or values different from the default
+- `decoding` parameter controls whether to use gamma encoding (default) or gamma correction
+
 ### Error Handling
 
 - Use `syn::Result` for all parsing operations

@@ -8,7 +8,7 @@
 /// - `entry_type`: The unsigned integer type of each entry (u8, u16, u32, u64)
 /// - `gamma`: The gamma value (float)
 /// - `size`: Number of table entries
-/// - `max_value`: Maximum output value to limit brightness
+/// - `max_value`: Maximum output value to limit brightness (optional, defaults to size-1)
 /// - `decoding`: Use gamma correction/decoding instead of encoding (optional, defaults to false)
 ///
 /// # Examples
@@ -21,8 +21,7 @@
 ///     name: GAMMA_ENCODED_TABLE,
 ///     entry_type: u8,
 ///     gamma: 2.2,
-///     size: 256,
-///     max_value: 255
+///     size: 256
 /// }
 /// ```
 ///
@@ -35,7 +34,6 @@
 ///     entry_type: u8,
 ///     gamma: 2.2,
 ///     size: 256,
-///     max_value: 255,
 ///     decoding: true
 /// }
 /// ```
@@ -59,7 +57,7 @@ struct GammaTableInput {
     entry_type: syn::Type,
     gamma: f64,
     size: usize,
-    max_value: u64,
+    max_value: Option<u64>,
     decoding: Option<bool>,
 }
 
@@ -124,8 +122,7 @@ impl syn::parse::Parse for GammaTableInput {
                 .ok_or_else(|| Error::new(input.span(), "Missing required parameter: gamma"))?,
             size: size
                 .ok_or_else(|| Error::new(input.span(), "Missing required parameter: size"))?,
-            max_value: max_value
-                .ok_or_else(|| Error::new(input.span(), "Missing required parameter: max_value"))?,
+            max_value,
             decoding,
         })
     }
@@ -136,7 +133,7 @@ fn generate_gamma_table(input: GammaTableInput) -> syn::Result<TokenStream2> {
     let entry_type = &input.entry_type;
     let gamma = input.gamma;
     let size = input.size;
-    let max_value = input.max_value;
+    let max_value = input.max_value.unwrap_or((size - 1) as u64);
     let decoding = input.decoding.unwrap_or(false);
 
     // Validate input parameters
@@ -230,5 +227,13 @@ mod tests {
         // But endpoints should be the same
         assert_eq!(encoding_values[0], decoding_values[0]); // Both 0
         assert_eq!(encoding_values[9], decoding_values[9]); // Both 100
+    }
+
+    #[test]
+    fn test_default_max_value() {
+        // Test that max_value defaults to size-1
+        let values = generate_table_values(10, 1.0, 9, false).unwrap();
+        assert_eq!(values[0], 0);
+        assert_eq!(values[9], 9); // size-1
     }
 }
