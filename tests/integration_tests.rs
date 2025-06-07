@@ -19,27 +19,6 @@ gamma_table! {
     decoding: true
 }
 
-// Test step quantization with encoding
-gamma_table! {
-    name: TEST_STEPPED_ENCODING_TABLE,
-    entry_type: u8,
-    gamma: 2.2,
-    size: 256,
-    steps: 8,
-    max_value: 255
-}
-
-// Test step quantization with decoding
-gamma_table! {
-    name: TEST_STEPPED_DECODING_TABLE,
-    entry_type: u8,
-    gamma: 2.2,
-    size: 256,
-    steps: 8,
-    max_value: 255,
-    decoding: true
-}
-
 // Test different data types
 gamma_table! {
     name: TEST_U16_TABLE,
@@ -82,60 +61,6 @@ fn test_decoding_table_properties() {
     for i in 1..TEST_GAMMA_DECODING_TABLE.len() {
         assert!(TEST_GAMMA_DECODING_TABLE[i] >= TEST_GAMMA_DECODING_TABLE[i - 1]);
     }
-}
-
-#[test]
-fn test_step_quantization_encoding() {
-    assert_eq!(TEST_STEPPED_ENCODING_TABLE.len(), 256);
-
-    // With 8 steps, we should see 8 distinct values
-    let mut unique_values: Vec<u8> = TEST_STEPPED_ENCODING_TABLE.iter().cloned().collect();
-    unique_values.sort();
-    unique_values.dedup();
-
-    // We should have exactly 8 unique values (one for each step)
-    assert_eq!(
-        unique_values.len(),
-        8,
-        "Expected 8 unique values, got: {:?}",
-        unique_values
-    );
-
-    // Values should be monotonically increasing
-    for i in 1..TEST_STEPPED_ENCODING_TABLE.len() {
-        assert!(TEST_STEPPED_ENCODING_TABLE[i] >= TEST_STEPPED_ENCODING_TABLE[i - 1]);
-    }
-
-    // Test boundaries
-    assert_eq!(TEST_STEPPED_ENCODING_TABLE[0], 0);
-    assert_eq!(TEST_STEPPED_ENCODING_TABLE[255], 255);
-}
-
-#[test]
-fn test_step_quantization_decoding() {
-    assert_eq!(TEST_STEPPED_DECODING_TABLE.len(), 256);
-
-    // With 8 steps, we should see 8 distinct values
-    let mut unique_values: Vec<u8> = TEST_STEPPED_DECODING_TABLE.iter().cloned().collect();
-    unique_values.sort();
-    unique_values.dedup();
-
-    // We should have exactly 8 unique values (one for each step)
-    assert_eq!(
-        unique_values.len(),
-        8,
-        "Expected 8 unique values, got: {:?}",
-        unique_values
-    );
-
-    // Values should be monotonically increasing
-    for i in 1..TEST_STEPPED_DECODING_TABLE.len() {
-        assert!(TEST_STEPPED_DECODING_TABLE[i] >= TEST_STEPPED_DECODING_TABLE[i - 1]);
-    }
-
-    // Test boundaries
-    assert_eq!(TEST_STEPPED_DECODING_TABLE[0], 0);
-    assert_eq!(TEST_STEPPED_DECODING_TABLE[255], 255);
 }
 
 #[test]

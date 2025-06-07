@@ -11,7 +11,6 @@ This crate provides a proc macro that generates efficient lookup tables for gamm
 - **Compile-time generation**: Tables are computed at compile time, resulting in zero runtime overhead
 - **Dual gamma modes**: Gamma encoding (default) and gamma correction/decoding
 - **Flexible parameters**: Configurable gamma values, table sizes, entry types, and brightness limits
-- **Step quantization**: Support for reduced step counts for memory-constrained applications
 - **Multiple data types**: Support for u8, u16, u32, and u64 entry types
 - **Brightness limiting**: Optional max_value parameter to cap output brightness
 
@@ -67,28 +66,6 @@ fn main() {
 }
 ```
 
-### Step Quantization Example
-
-For memory-constrained applications, you can use step quantization:
-
-```rust
-gamma_table! {
-    name: STEPPED_GAMMA_TABLE,
-    entry_type: u8,
-    gamma: 2.2,
-    size: 256,
-    steps: 8,        // Only 8 discrete output levels
-    max_value: 255
-}
-```
-
-With 8 steps and 256 entries, this creates step boundaries at approximately:
-
-- Step 0: inputs 0-18 → output 0
-- Step 1: inputs 19-54 → output ~15
-- Step 2: inputs 55-91 → output ~45
-- ...and so on
-
 ### LED Control Example
 
 For LED control where you want to limit maximum brightness:
@@ -109,7 +86,6 @@ gamma_table! {
 - **`entry_type`** (required): The unsigned integer type for each entry (`u8`, `u16`, `u32`, `u64`)
 - **`gamma`** (required): The gamma value (positive float)
 - **`size`** (required): Number of table entries
-- **`steps`** (optional): Number of discrete output levels (defaults to `size` for smooth gradients)
 - **`max_value`** (required): Maximum output value to limit brightness
 - **`decoding`** (optional): Use gamma correction/decoding instead of encoding (defaults to `false`)
 
@@ -126,15 +102,6 @@ output = (input / max_input)^gamma * max_value
 ```c
 output = (input / max_input)^(1/gamma) * max_value
 ```
-
-### Step Quantization
-
-When using fewer steps than the table size:
-
-1. Input values are mapped to step indices
-2. Step values are normalized (0.0 to 1.0)
-3. Gamma processing is applied to step values
-4. Results are scaled to the output range
 
 ## Performance
 

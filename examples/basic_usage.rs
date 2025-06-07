@@ -19,16 +19,6 @@ gamma_table! {
     decoding: true
 }
 
-// Generate a stepped gamma encoding table with only 8 discrete levels
-gamma_table! {
-    name: GAMMA_ENCODING_STEPPED,
-    entry_type: u8,
-    gamma: 2.2,
-    size: 256,
-    steps: 8,
-    max_value: 255
-}
-
 // Generate a high-resolution 16-bit table
 gamma_table! {
     name: GAMMA_TABLE_16BIT,
@@ -57,17 +47,6 @@ fn main() {
     println!("\nGamma Decoding Table (input^(1/gamma) - traditional gamma correction):");
     for (i, &value) in GAMMA_DECODING_TABLE.iter().take(16).enumerate() {
         println!("  Input: {:3} -> Output: {:3}", i, value);
-    }
-
-    println!("\n=== Stepped Encoding Table (8 steps) ===");
-    let step_boundaries = [0, 36, 73, 109, 146, 182, 219, 255];
-    for &boundary in &step_boundaries {
-        if boundary < GAMMA_ENCODING_STEPPED.len() {
-            println!(
-                "  Input: {:3} -> Output: {:3}",
-                boundary, GAMMA_ENCODING_STEPPED[boundary]
-            );
-        }
     }
 
     println!("\n=== LED Gamma Table (brightness limited) ===");

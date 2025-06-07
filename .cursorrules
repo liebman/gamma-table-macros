@@ -34,7 +34,6 @@ This is a Rust procedural macro crate that generates compile-time gamma lookup t
 
 - **Gamma Encoding** (default): `output = (input/max_input)^gamma * max_value`
 - **Gamma Decoding**: `output = (input/max_input)^(1/gamma) * max_value`
-- **Step Quantization**: Maps input range to fewer discrete output levels
 - Default behavior uses gamma encoding (makes mid-tones darker)
 - Decoding mode uses gamma correction (makes mid-tones brighter)
 
@@ -66,7 +65,6 @@ This is a Rust procedural macro crate that generates compile-time gamma lookup t
 ### Test Coverage Requirements
 
 - Test both gamma encoding and decoding modes
-- Test step quantization with various step counts
 - Test different data types (u8, u16, u32, u64)
 - Test brightness limiting functionality
 - Test parameter validation and error cases
@@ -162,7 +160,6 @@ This is a Rust procedural macro crate that generates compile-time gamma lookup t
 - Image processing pipelines
 - Display calibration
 - Graphics rendering with proper gamma handling
-- Embedded systems with memory constraints (use step quantization)
 
 ### Compatibility
 
