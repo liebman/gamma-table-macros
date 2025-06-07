@@ -20,3 +20,16 @@ syn = { version = "2.0", features = ["full"] }
 
 [dev-dependencies]
 trybuild = "1.0" 
+
+# Coverage configuration
+[package.metadata.coverage.run]
+include-ffi = false
+skip-clean = false
+
+[package.metadata.coverage.report]
+# Exclude generated files and test modules from coverage
+exclude = [
+    "*/target/*",
+    "*/tests/*",
+    "*/benches/*",
+]

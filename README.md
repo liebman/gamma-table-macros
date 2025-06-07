@@ -83,7 +83,7 @@ gamma_table! {
 - **`name`** (required): The name of the const table to be generated
 - **`entry_type`** (required): The unsigned integer type for each entry (`u8`, `u16`, `u32`, `u64`)
 - **`gamma`** (required): The gamma value (positive float)
-- **`size`** (required): Number of table entries
+- **`size`** (required): Number of table entries (minimum 3)
 - **`max_value`** (optional): Maximum output value to limit brightness (defaults to `size-1`)
 - **`decoding`** (optional): Use gamma correction/decoding instead of encoding (defaults to `false`)
 

@@ -7,7 +7,7 @@
 /// - `name`: The name of the const table to be generated
 /// - `entry_type`: The unsigned integer type of each entry (u8, u16, u32, u64)
 /// - `gamma`: The gamma value (float)
-/// - `size`: Number of table entries
+/// - `size`: Number of table entries (minimum 3)
 /// - `max_value`: Maximum output value to limit brightness (optional, defaults to size-1)
 /// - `decoding`: Use gamma correction/decoding instead of encoding (optional, defaults to false)
 ///
@@ -140,8 +140,11 @@ fn generate_gamma_table(input: GammaTableInput) -> syn::Result<TokenStream2> {
     if gamma <= 0.0 {
         return Err(Error::new(name.span(), "Gamma value must be positive"));
     }
-    if size == 0 {
-        return Err(Error::new(name.span(), "Size must be greater than 0"));
+    if size < 3 {
+        return Err(Error::new(
+            name.span(),
+            "Size must be at least 3 to create a meaningful gamma table. Smaller sizes only have min and max values.",
+        ));
     }
 
     // Generate the lookup table values
@@ -235,5 +238,38 @@ mod tests {
         let values = generate_table_values(10, 1.0, 9, false).unwrap();
         assert_eq!(values[0], 0);
         assert_eq!(values[9], 9); // size-1
+    }
+
+    #[test]
+    fn test_minimum_size_validation() {
+        // Test that size must be at least 3
+        let input = GammaTableInput {
+            name: syn::parse_str("TEST_TABLE").unwrap(),
+            entry_type: syn::parse_str("u8").unwrap(),
+            gamma: 2.2,
+            size: 2,
+            max_value: None,
+            decoding: None,
+        };
+
+        let result = generate_gamma_table(input);
+        assert!(result.is_err());
+        assert!(result
+            .unwrap_err()
+            .to_string()
+            .contains("Size must be at least 3"));
+
+        // Test that size 3 works
+        let input = GammaTableInput {
+            name: syn::parse_str("TEST_TABLE").unwrap(),
+            entry_type: syn::parse_str("u8").unwrap(),
+            gamma: 2.2,
+            size: 3,
+            max_value: None,
+            decoding: None,
+        };
+
+        let result = generate_gamma_table(input);
+        assert!(result.is_ok());
     }
 }

@@ -1,0 +1,5 @@
+error: Size must be at least 3 to create a meaningful gamma table. Smaller sizes only have min and max values.
+ --> tests/compile_fail/size_too_small.rs:5:11
+  |
+5 |     name: INVALID_TABLE,
+  |           ^^^^^^^^^^^^^

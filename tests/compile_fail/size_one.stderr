@@ -1,0 +1,5 @@
+error: Size must be at least 3 to create a meaningful gamma table. Smaller sizes only have min and max values.
+ --> tests/compile_fail/size_one.rs:5:11
+  |
+5 |     name: INVALID_SIZE_ONE_TABLE,
+  |           ^^^^^^^^^^^^^^^^^^^^^^

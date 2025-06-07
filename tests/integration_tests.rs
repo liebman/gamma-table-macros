@@ -43,6 +43,14 @@ gamma_table! {
     max_value: 128
 }
 
+// Test minimum valid size
+gamma_table! {
+    name: TEST_MINIMUM_SIZE_TABLE,
+    entry_type: u8,
+    gamma: 2.2,
+    size: 3
+}
+
 #[test]
 fn test_encoding_table_properties() {
     // Test gamma encoding table properties
@@ -126,4 +134,22 @@ fn test_default_max_value() {
     // Test that when max_value is not specified, it defaults to size-1
     assert_eq!(TEST_GAMMA_ENCODING_TABLE[255], 255); // size 256, max should be 255
     assert_eq!(TEST_U16_TABLE[255], 255); // size 256, max should be 255 (not related to u16 range)
+}
+
+#[test]
+fn test_minimum_size_table() {
+    // Test that a table with size 3 (minimum) works correctly
+    assert_eq!(TEST_MINIMUM_SIZE_TABLE.len(), 3);
+    assert_eq!(TEST_MINIMUM_SIZE_TABLE[0], 0);   // Always 0 at start
+    assert_eq!(TEST_MINIMUM_SIZE_TABLE[2], 2);   // max_value defaults to size-1 = 2
+    
+    // Values should be monotonically increasing
+    assert!(TEST_MINIMUM_SIZE_TABLE[1] >= TEST_MINIMUM_SIZE_TABLE[0]);
+    assert!(TEST_MINIMUM_SIZE_TABLE[2] >= TEST_MINIMUM_SIZE_TABLE[1]);
+}
+
+#[test]
+fn test_compile_fail() {
+    let t = trybuild::TestCases::new();
+    t.compile_fail("tests/compile_fail/*.rs");
 }
