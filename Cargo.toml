@@ -1,6 +1,6 @@
 [package]
 name = "gamma-table-macros"
-version = "0.1.0"
+version = "0.0.0"
 authors = ["Christopher B. Liebman <liebman@zod.com>"]
 edition = "2021"
 license = "MIT OR Apache-2.0"
@@ -10,6 +10,7 @@ documentation = "https://docs.rs/gamma-table-macros"
 keywords = ["gamma", "correction", "lookup-table", "proc-macro", "graphics"]
 categories = ["graphics", "algorithms", "development-tools::procedural-macro-helpers"]
 readme = "README.md"
+
 [lib]
 proc-macro = true
 

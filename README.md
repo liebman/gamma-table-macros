@@ -1,5 +1,10 @@
 # Gamma Table Macros
 
+[![Crates.io](https://img.shields.io/crates/v/gamma-table-macros.svg)](https://crates.io/crates/gamma-table-macros)
+[![Documentation](https://docs.rs/gamma-table-macros/badge.svg)](https://docs.rs/gamma-table-macros)
+[![License](https://img.shields.io/badge/license-MIT%2FApache--2.0-blue.svg)](README.md)
+[![Coverage Status](https://coveralls.io/repos/github/liebman/gamma-table-macros/badge.svg?branch=main)](https://coveralls.io/github/liebman/gamma-table-macros?branch=main)
+
 A Rust procedural macro crate for generating compile-time gamma lookup tables with support for both gamma encoding and gamma correction/decoding.
 
 ## Overview
