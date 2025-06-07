@@ -1,3 +1,24 @@
+//! # Gamma Table Macros
+//!
+//! This crate provides a procedural macro for generating gamma lookup tables.
+//! The generated table can be used for fast brightness/gamma correction in embedded, graphics, or image processing applications.
+//!
+//! # Examples
+//!
+//! Basic gamma encoding table:
+//! ```
+//! use gamma_table_macros::gamma_table;
+//!
+//! gamma_table! {
+//!     name: GAMMA_TABLE_22,
+//!     entry_type: u8,
+//!     gamma: 2.2,
+//!     size: 256
+//! }
+//! ```
+#![warn(missing_docs)]
+#![warn(clippy::all)]
+#![warn(clippy::pedantic)]
 extern crate proc_macro;
 
 use proc_macro2::TokenStream;
@@ -10,27 +31,27 @@ use syn::{parse_macro_input, Error, LitBool, LitFloat, LitInt};
 /// The generated table can be used for fast brightness/gamma correction in embedded, graphics, or image processing applications.
 ///
 /// # Parameters
-/// - `name`: `IDENT`  
-///   The name of the generated constant table (e.g., `GAMMA_TABLE_22`).  
-/// - `entry_type`: `Type`  
-///   The unsigned integer type for table entries (`u8`, `u16`, `u32`, or `u64`).  
-/// - `gamma`: `float`  
-///   The gamma value to use for encoding or decoding. Must be positive.  
-/// - `size`: `integer`  
-///   The number of entries in the table. Must be at least 3.  
-/// - `max_value`: `integer` (optional, default `size-1`)  
+/// - `name`: `IDENT`\
+///   The name of the generated constant table (e.g., `GAMMA_TABLE_22`).
+/// - `entry_type`: `Type`\
+///   The unsigned integer type for table entries (`u8`, `u16`, `u32`, or `u64`).
+/// - `gamma`: `float`\
+///   The gamma value to use for encoding or decoding. Must be positive.
+/// - `size`: `integer`\
+///   The number of entries in the table. Must be at least 3.
+/// - `max_value`: `integer` (optional, default `size-1`)\
 ///   The maximum output value for the table.
-///   Useful for brightness limiting or matching hardware constraints.  
-/// - `decoding`: `bool` (optional, default false)  
-///   If `true`, generates a gamma correction (decoding) table using `input^(1/gamma)`.  
+///   Useful for brightness limiting or matching hardware constraints.
+/// - `decoding`: `bool` (optional, default false)\
+///   If `true`, generates a gamma correction (decoding) table using `input^(1/gamma)`.\
 ///   If `false` or omitted, generates a gamma encoding table using `input^gamma`.
 ///
 /// # Gamma Processing
-/// - **Gamma Encoding (default):**  
-///   `output = (input / max_input) ^ gamma * max_value`  
+/// - **Gamma Encoding (default):**\
+///   `output = (input / max_input) ^ gamma * max_value`\
 ///   Makes mid-tones darker, suitable for preparing data for display.
-/// - **Gamma Decoding:**  
-///   `output = (input / max_input) ^ (1/gamma) * max_value`  
+/// - **Gamma Decoding:**\
+///   `output = (input / max_input) ^ (1/gamma) * max_value`\
 ///   Makes mid-tones brighter, suitable for correcting gamma-encoded data.
 ///
 /// # Output
@@ -79,7 +100,7 @@ use syn::{parse_macro_input, Error, LitBool, LitFloat, LitInt};
 pub fn gamma_table(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     let input = parse_macro_input!(input as GammaTableInput);
 
-    match generate_gamma_table(input) {
+    match generate_gamma_table(&input) {
         Ok(tokens) => tokens.into(),
         Err(err) => err.to_compile_error().into(),
     }
@@ -166,9 +187,9 @@ fn get_integer_type_max_value(entry_type: &syn::Type) -> Option<u64> {
     if let syn::Type::Path(type_path) = entry_type {
         if let Some(segment) = type_path.path.segments.last() {
             match segment.ident.to_string().as_str() {
-                "u8" => Some(u8::MAX as u64),
-                "u16" => Some(u16::MAX as u64),
-                "u32" => Some(u32::MAX as u64),
+                "u8" => Some(u64::from(u8::MAX)),
+                "u16" => Some(u64::from(u16::MAX)),
+                "u32" => Some(u64::from(u32::MAX)),
                 "u64" => Some(u64::MAX),
                 _ => None, // Unknown or unsupported type
             }
@@ -180,7 +201,7 @@ fn get_integer_type_max_value(entry_type: &syn::Type) -> Option<u64> {
     }
 }
 
-fn generate_gamma_table(input: GammaTableInput) -> syn::Result<TokenStream> {
+fn generate_gamma_table(input: &GammaTableInput) -> syn::Result<TokenStream> {
     let name = &input.name;
     let entry_type = &input.entry_type;
     let gamma = input.gamma;
@@ -223,7 +244,7 @@ fn generate_gamma_table(input: GammaTableInput) -> syn::Result<TokenStream> {
     }
 
     // Generate the lookup table values
-    let values = generate_table_values(size, gamma, max_value, decoding)?;
+    let values = generate_table_values(size, gamma, max_value, decoding);
 
     // Convert values to tokens with proper casting
     let value_tokens: Vec<TokenStream> = values
@@ -241,7 +262,7 @@ fn generate_table_values(
     gamma: f64,
     max_value: u64,
     decoding: bool,
-) -> syn::Result<Vec<u64>> {
+) -> Vec<u64> {
     let mut values = Vec::with_capacity(size);
 
     // Choose gamma exponent based on mode
@@ -253,13 +274,15 @@ fn generate_table_values(
 
     // Direct gamma processing for each entry
     for i in 0..size {
+        #[allow(clippy::cast_precision_loss)]
         let normalized_input = i as f64 / (size - 1) as f64;
         let processed = normalized_input.powf(gamma_exponent);
+        #[allow(clippy::cast_precision_loss, clippy::cast_possible_truncation, clippy::cast_sign_loss)]
         let output_value = (processed * max_value as f64).round() as u64;
         values.push(output_value.min(max_value));
     }
 
-    Ok(values)
+    values
 }
 
 #[cfg(test)]
@@ -269,7 +292,7 @@ mod tests {
     #[test]
     fn test_gamma_encoding_default() {
         // Test gamma encoding (default behavior)
-        let values = generate_table_values(256, 2.2, 255, false).unwrap();
+        let values = generate_table_values(256, 2.2, 255, false);
         assert_eq!(values.len(), 256);
         assert_eq!(values[0], 0);
         assert_eq!(values[255], 255);
@@ -283,7 +306,7 @@ mod tests {
     #[test]
     fn test_gamma_decoding() {
         // Test gamma correction/decoding
-        let values = generate_table_values(256, 2.2, 255, true).unwrap();
+        let values = generate_table_values(256, 2.2, 255, true);
         assert_eq!(values.len(), 256);
         assert_eq!(values[0], 0);
         assert_eq!(values[255], 255);
@@ -296,8 +319,8 @@ mod tests {
 
     #[test]
     fn test_encoding_vs_decoding_difference() {
-        let encoding_values = generate_table_values(10, 2.2, 100, false).unwrap();
-        let decoding_values = generate_table_values(10, 2.2, 100, true).unwrap();
+        let encoding_values = generate_table_values(10, 2.2, 100, false);
+        let decoding_values = generate_table_values(10, 2.2, 100, true);
 
         // Encoding and decoding should produce different results for mid-values
         assert_ne!(encoding_values[5], decoding_values[5]);
@@ -310,7 +333,7 @@ mod tests {
     #[test]
     fn test_default_max_value() {
         // Test that max_value defaults to size-1
-        let values = generate_table_values(10, 1.0, 9, false).unwrap();
+        let values = generate_table_values(10, 1.0, 9, false);
         assert_eq!(values[0], 0);
         assert_eq!(values[9], 9); // size-1
     }
@@ -327,7 +350,7 @@ mod tests {
             decoding: None,
         };
 
-        let result = generate_gamma_table(input);
+        let result = generate_gamma_table(&input);
         assert!(result.is_err());
         assert!(result
             .unwrap_err()
@@ -344,7 +367,7 @@ mod tests {
             decoding: None,
         };
 
-        let result = generate_gamma_table(input);
+        let result = generate_gamma_table(&input);
         assert!(result.is_ok());
     }
 
@@ -360,7 +383,7 @@ mod tests {
             decoding: None,
         };
 
-        let result = generate_gamma_table(input);
+        let result = generate_gamma_table(&input);
         assert!(result.is_err());
         assert!(result
             .unwrap_err()
@@ -377,7 +400,7 @@ mod tests {
             decoding: None,
         };
 
-        let result = generate_gamma_table(input);
+        let result = generate_gamma_table(&input);
         assert!(result.is_err());
         assert!(result
             .unwrap_err()
@@ -549,7 +572,7 @@ mod tests {
             max_value: Some(300), // Exceeds u8::MAX (255)
             decoding: None,
         };
-        let result = generate_gamma_table(input);
+        let result = generate_gamma_table(&input);
         assert!(result.is_err());
         assert!(result
             .unwrap_err()
@@ -565,7 +588,7 @@ mod tests {
             max_value: Some(70000), // Exceeds u16::MAX (65535)
             decoding: None,
         };
-        let result = generate_gamma_table(input);
+        let result = generate_gamma_table(&input);
         assert!(result.is_err());
         assert!(result
             .unwrap_err()
@@ -581,7 +604,7 @@ mod tests {
             max_value: Some(5000000000), // Exceeds u32::MAX (4294967295)
             decoding: None,
         };
-        let result = generate_gamma_table(input);
+        let result = generate_gamma_table(&input);
         assert!(result.is_err());
         assert!(result
             .unwrap_err()
@@ -597,7 +620,7 @@ mod tests {
             max_value: Some(255), // Valid for u8
             decoding: None,
         };
-        let result = generate_gamma_table(input);
+        let result = generate_gamma_table(&input);
         assert!(result.is_ok());
 
         // Test valid max_value for u32
@@ -609,7 +632,7 @@ mod tests {
             max_value: Some(1000000), // Valid for u32
             decoding: None,
         };
-        let result = generate_gamma_table(input);
+        let result = generate_gamma_table(&input);
         assert!(result.is_ok());
 
         // Test valid max_value for u64
@@ -621,7 +644,7 @@ mod tests {
             max_value: Some(1000000), // Valid for u64
             decoding: None,
         };
-        let result = generate_gamma_table(input);
+        let result = generate_gamma_table(&input);
         assert!(result.is_ok());
 
         // Test unsupported entry type
@@ -633,7 +656,7 @@ mod tests {
             max_value: Some(100),
             decoding: None,
         };
-        let result = generate_gamma_table(input);
+        let result = generate_gamma_table(&input);
         assert!(result.is_err());
         assert!(result
             .unwrap_err()
@@ -649,7 +672,7 @@ mod tests {
             max_value: Some(100),
             decoding: None,
         };
-        let result = generate_gamma_table(input);
+        let result = generate_gamma_table(&input);
         assert!(result.is_err());
         assert!(result
             .unwrap_err()
