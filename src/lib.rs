@@ -1,0 +1,276 @@
+/// Procedural macro for generating gamma lookup tables.
+///
+/// By default uses gamma encoding (input^gamma).
+/// When decoding=true, uses gamma correction/decoding (input^(1/gamma)).
+///
+/// # Parameters
+/// - `name`: The name of the const table to be generated
+/// - `entry_type`: The unsigned integer type of each entry (u8, u16, u32, u64)
+/// - `gamma`: The gamma value (float)
+/// - `size`: Number of table entries
+/// - `steps`: How many value changes (optional, defaults to size)
+/// - `max_value`: Maximum output value to limit brightness
+/// - `decoding`: Use gamma correction/decoding instead of encoding (optional, defaults to false)
+///
+/// # Examples
+///
+/// Gamma encoding (default):
+/// ```
+/// use gamma_correction_proc::gamma_table;
+///
+/// gamma_table! {
+///     name: GAMMA_ENCODED_TABLE,
+///     entry_type: u8,
+///     gamma: 2.2,
+///     size: 256,
+///     max_value: 255
+/// }
+/// ```
+///
+/// Gamma correction/decoding:
+/// ```
+/// use gamma_correction_proc::gamma_table;
+///
+/// gamma_table! {
+///     name: GAMMA_DECODED_TABLE,
+///     entry_type: u8,
+///     gamma: 2.2,
+///     size: 256,
+///     max_value: 255,
+///     decoding: true
+/// }
+/// ```
+use proc_macro::TokenStream;
+use proc_macro2::TokenStream as TokenStream2;
+use quote::quote;
+use syn::{parse_macro_input, Error, LitBool, LitFloat, LitInt};
+
+#[proc_macro]
+pub fn gamma_table(input: TokenStream) -> TokenStream {
+    let input = parse_macro_input!(input as GammaTableInput);
+
+    match generate_gamma_table(input) {
+        Ok(tokens) => tokens.into(),
+        Err(err) => err.to_compile_error().into(),
+    }
+}
+
+struct GammaTableInput {
+    name: syn::Ident,
+    entry_type: syn::Type,
+    gamma: f64,
+    size: usize,
+    steps: Option<usize>,
+    max_value: u64,
+    decoding: Option<bool>,
+}
+
+impl syn::parse::Parse for GammaTableInput {
+    fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
+        let mut name = None;
+        let mut entry_type = None;
+        let mut gamma = None;
+        let mut size = None;
+        let mut steps = None;
+        let mut max_value = None;
+        let mut decoding = None;
+
+        while !input.is_empty() {
+            let ident: syn::Ident = input.parse()?;
+            input.parse::<syn::Token![:]>()?;
+
+            match ident.to_string().as_str() {
+                "name" => {
+                    let value: syn::Ident = input.parse()?;
+                    name = Some(value);
+                }
+                "entry_type" => {
+                    let value: syn::Type = input.parse()?;
+                    entry_type = Some(value);
+                }
+                "gamma" => {
+                    let value: LitFloat = input.parse()?;
+                    gamma = Some(value.base10_parse()?);
+                }
+                "size" => {
+                    let value: LitInt = input.parse()?;
+                    size = Some(value.base10_parse()?);
+                }
+                "steps" => {
+                    let value: LitInt = input.parse()?;
+                    steps = Some(value.base10_parse()?);
+                }
+                "max_value" => {
+                    let value: LitInt = input.parse()?;
+                    max_value = Some(value.base10_parse()?);
+                }
+                "decoding" => {
+                    let value: LitBool = input.parse()?;
+                    decoding = Some(value.value);
+                }
+                _ => {
+                    return Err(Error::new(
+                        ident.span(),
+                        format!("Unknown parameter: {}", ident),
+                    ))
+                }
+            }
+
+            if input.peek(syn::Token![,]) {
+                input.parse::<syn::Token![,]>()?;
+            }
+        }
+
+        Ok(GammaTableInput {
+            name: name
+                .ok_or_else(|| Error::new(input.span(), "Missing required parameter: name"))?,
+            entry_type: entry_type.ok_or_else(|| {
+                Error::new(input.span(), "Missing required parameter: entry_type")
+            })?,
+            gamma: gamma
+                .ok_or_else(|| Error::new(input.span(), "Missing required parameter: gamma"))?,
+            size: size
+                .ok_or_else(|| Error::new(input.span(), "Missing required parameter: size"))?,
+            steps,
+            max_value: max_value
+                .ok_or_else(|| Error::new(input.span(), "Missing required parameter: max_value"))?,
+            decoding,
+        })
+    }
+}
+
+fn generate_gamma_table(input: GammaTableInput) -> syn::Result<TokenStream2> {
+    let name = &input.name;
+    let entry_type = &input.entry_type;
+    let gamma = input.gamma;
+    let size = input.size;
+    let steps = input.steps.unwrap_or(size);
+    let max_value = input.max_value;
+    let decoding = input.decoding.unwrap_or(false);
+
+    // Validate input parameters
+    if gamma <= 0.0 {
+        return Err(Error::new(name.span(), "Gamma value must be positive"));
+    }
+    if size == 0 {
+        return Err(Error::new(name.span(), "Size must be greater than 0"));
+    }
+    if steps == 0 || steps > size {
+        return Err(Error::new(name.span(), "Steps must be between 1 and size"));
+    }
+
+    // Generate the lookup table values
+    let values = generate_table_values(size, steps, gamma, max_value, decoding)?;
+
+    // Convert values to tokens with proper casting
+    let value_tokens: Vec<TokenStream2> = values
+        .iter()
+        .map(|&v| quote! { #v as #entry_type })
+        .collect();
+
+    Ok(quote! {
+        const #name: [#entry_type; #size] = [#(#value_tokens),*];
+    })
+}
+
+fn generate_table_values(
+    size: usize,
+    steps: usize,
+    gamma: f64,
+    max_value: u64,
+    decoding: bool,
+) -> syn::Result<Vec<u64>> {
+    let mut values = Vec::with_capacity(size);
+
+    // Choose gamma exponent based on mode
+    let gamma_exponent = if decoding {
+        1.0 / gamma // Gamma correction/decoding: input^(1/gamma)
+    } else {
+        gamma // Gamma encoding (default): input^gamma
+    };
+
+    if steps == size {
+        // Direct gamma processing for each entry
+        for i in 0..size {
+            let normalized_input = i as f64 / (size - 1) as f64;
+            let processed = normalized_input.powf(gamma_exponent);
+            let output_value = (processed * max_value as f64).round() as u64;
+            values.push(output_value.min(max_value));
+        }
+    } else {
+        // Step-based gamma processing
+        let step_size = (size - 1) as f64 / (steps - 1) as f64;
+
+        for i in 0..size {
+            // Determine which step this input belongs to
+            let step_index = ((i as f64 / step_size).round() as usize).min(steps - 1);
+
+            // Calculate the normalized step value
+            let normalized_step = step_index as f64 / (steps - 1) as f64;
+
+            // Apply gamma processing to the step value
+            let processed = normalized_step.powf(gamma_exponent);
+            let output_value = (processed * max_value as f64).round() as u64;
+            values.push(output_value.min(max_value));
+        }
+    }
+
+    Ok(values)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_gamma_encoding_default() {
+        // Test gamma encoding (default behavior)
+        let values = generate_table_values(256, 8, 2.2, 255, false).unwrap();
+        assert_eq!(values.len(), 256);
+        assert_eq!(values[0], 0);
+        assert_eq!(values[255], 255);
+
+        // Values should be monotonically increasing
+        for i in 1..values.len() {
+            assert!(values[i] >= values[i - 1]);
+        }
+    }
+
+    #[test]
+    fn test_gamma_decoding() {
+        // Test gamma correction/decoding
+        let values = generate_table_values(256, 8, 2.2, 255, true).unwrap();
+        assert_eq!(values.len(), 256);
+        assert_eq!(values[0], 0);
+        assert_eq!(values[255], 255);
+
+        // Values should be monotonically increasing
+        for i in 1..values.len() {
+            assert!(values[i] >= values[i - 1]);
+        }
+    }
+
+    #[test]
+    fn test_encoding_vs_decoding_difference() {
+        let encoding_values = generate_table_values(10, 10, 2.2, 100, false).unwrap();
+        let decoding_values = generate_table_values(10, 10, 2.2, 100, true).unwrap();
+
+        // Encoding and decoding should produce different results for mid-values
+        assert_ne!(encoding_values[5], decoding_values[5]);
+
+        // But endpoints should be the same
+        assert_eq!(encoding_values[0], decoding_values[0]); // Both 0
+        assert_eq!(encoding_values[9], decoding_values[9]); // Both 100
+    }
+
+    #[test]
+    fn test_step_quantization() {
+        let values = generate_table_values(256, 8, 2.2, 255, false).unwrap();
+
+        // With 8 steps, we should have exactly 8 unique values
+        let mut unique_values: Vec<u64> = values.iter().cloned().collect();
+        unique_values.sort();
+        unique_values.dedup();
+        assert_eq!(unique_values.len(), 8);
+    }
+}
