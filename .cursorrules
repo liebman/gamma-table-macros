@@ -1,0 +1,172 @@
+# Gamma Correction Proc Macro - Cursor Rules
+
+## Project Overview
+
+This is a Rust procedural macro crate that generates compile-time gamma lookup tables with support for both gamma encoding (input^gamma) and gamma correction/decoding (input^(1/gamma)).
+
+## Code Style & Conventions
+
+### Rust Proc Macro Best Practices
+
+- Use `syn` for parsing macro input with proper error handling
+- Use `quote!` macro for generating output tokens
+- Always validate input parameters and provide clear error messages
+- Keep generated code simple and efficient
+- Use `TokenStream2` for internal processing, convert to `TokenStream` only at boundaries
+
+### Naming Conventions
+
+- Macro parameters: snake_case (e.g., `entry_type`, `max_value`)
+- Generated constants: UPPER_SNAKE_CASE (e.g., `GAMMA_TABLE_22`)
+- Test functions: descriptive names with `test_` prefix
+- Internal functions: snake_case with clear purpose
+
+### Error Handling
+
+- Use `syn::Result` for all parsing operations
+- Provide helpful error messages with proper span information
+- Validate all parameters before processing
+- Return compilation errors for invalid configurations
+
+## Gamma Processing Knowledge
+
+### Key Concepts
+
+- **Gamma Encoding** (default): `output = (input/max_input)^gamma * max_value`
+- **Gamma Decoding**: `output = (input/max_input)^(1/gamma) * max_value`
+- **Step Quantization**: Maps input range to fewer discrete output levels
+- Default behavior uses gamma encoding (makes mid-tones darker)
+- Decoding mode uses gamma correction (makes mid-tones brighter)
+
+### Mathematical Considerations
+
+- Always normalize inputs to 0.0-1.0 range before applying gamma
+- Handle edge cases: input 0 should always output 0
+- Use proper rounding for integer outputs
+- Ensure monotonic increasing output for valid gamma values
+
+## Code Organization
+
+### File Structure
+
+- `src/lib.rs`: Main proc macro implementation
+- `examples/`: Usage demonstrations
+- `tests/`: Integration tests
+- `README.md`: User documentation
+
+### Core Components
+
+- `GammaTableInput`: Parsed macro parameters
+- `generate_gamma_table()`: Main table generation logic
+- `generate_table_values()`: Mathematical computation
+- Parameter validation and error handling
+
+## Testing Guidelines
+
+### Test Coverage Requirements
+
+- Test both gamma encoding and decoding modes
+- Test step quantization with various step counts
+- Test different data types (u8, u16, u32, u64)
+- Test brightness limiting functionality
+- Test parameter validation and error cases
+- Verify monotonic increasing property
+- Test edge cases (0, max values)
+
+### Test Naming
+
+- Use descriptive test names that explain what is being tested
+- Group related tests with consistent prefixes
+- Include both unit tests and integration tests
+
+## Documentation Standards
+
+### Code Documentation
+
+- Document all public APIs with examples
+- Explain gamma encoding vs decoding clearly
+- Provide mathematical formulas for both modes
+- Include practical usage examples
+- Document all macro parameters with types and requirements
+
+### README Requirements
+
+- Clear overview of dual gamma modes
+- Multiple usage examples showing different configurations
+- Mathematical explanation of formulas
+- Performance characteristics
+- Installation and usage instructions
+
+## Development Workflow
+
+### Making Changes
+
+- Always run `cargo test` before committing
+- Test examples with `cargo run --example basic_usage`
+- Update documentation when adding features
+- Maintain backward compatibility for existing parameters
+- Add integration tests for new functionality
+
+### Adding New Features
+
+- Consider impact on compile-time performance
+- Ensure new parameters are optional when possible
+- Add comprehensive tests for new functionality
+- Update examples and documentation
+- Validate edge cases and error conditions
+
+## Performance Considerations
+
+### Compile-Time Optimization
+
+- Minimize computation during macro expansion
+- Cache intermediate calculations when possible
+- Use efficient algorithms for table generation
+- Consider memory usage for large tables
+
+### Generated Code Quality
+
+- Generate minimal, efficient const arrays
+- Use appropriate integer types for values
+- Ensure zero runtime overhead
+- Optimize for lookup performance
+
+## Common Pitfalls to Avoid
+
+### Gamma Processing
+
+- Don't confuse gamma encoding with gamma correction
+- Always validate gamma > 0
+- Handle division by zero in gamma calculations
+- Ensure proper normalization of input values
+
+### Proc Macro Development
+
+- Don't panic in macro code - use proper error handling
+- Avoid complex computations in quote! blocks
+- Test macro expansion output manually
+- Be careful with token hygiene and spans
+
+### Testing
+
+- Don't rely only on exact value comparisons for floating-point derived results
+- Test the mathematical properties (monotonic, endpoints)
+- Verify generated table properties, not just individual values
+- Test with realistic gamma values (1.8, 2.2, 2.4)
+
+## Integration Notes
+
+### Common Use Cases
+
+- LED brightness control with gamma correction
+- Image processing pipelines
+- Display calibration
+- Graphics rendering with proper gamma handling
+- Embedded systems with memory constraints (use step quantization)
+
+### Compatibility
+
+- Works with no_std environments
+- Generated tables are const and can be used in static contexts
+- Compatible with embedded targets
+- Zero runtime dependencies for generated code
