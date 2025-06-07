@@ -257,12 +257,7 @@ fn generate_gamma_table(input: &GammaTableInput) -> syn::Result<TokenStream> {
     })
 }
 
-fn generate_table_values(
-    size: usize,
-    gamma: f64,
-    max_value: u64,
-    decoding: bool,
-) -> Vec<u64> {
+fn generate_table_values(size: usize, gamma: f64, max_value: u64, decoding: bool) -> Vec<u64> {
     let mut values = Vec::with_capacity(size);
 
     // Choose gamma exponent based on mode
@@ -277,7 +272,12 @@ fn generate_table_values(
         #[allow(clippy::cast_precision_loss)]
         let normalized_input = i as f64 / (size - 1) as f64;
         let processed = normalized_input.powf(gamma_exponent);
-        #[allow(clippy::cast_precision_loss, clippy::cast_possible_truncation, clippy::cast_sign_loss)]
+        // we know the the sign is positive, and the result values will fit in a u64, and we are rounding
+        #[allow(
+            clippy::cast_precision_loss,
+            clippy::cast_possible_truncation,
+            clippy::cast_sign_loss
+        )]
         let output_value = (processed * max_value as f64).round() as u64;
         values.push(output_value.min(max_value));
     }
