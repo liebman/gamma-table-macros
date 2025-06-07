@@ -1,4 +1,4 @@
-# Gamma Correction Proc Macro
+# Gamma Table Macros
 
 A Rust procedural macro crate for generating compile-time gamma lookup tables with support for both gamma encoding and gamma correction/decoding.
 
@@ -20,13 +20,13 @@ Add this to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-gamma-correction-proc = "0.1.0"
+gamma-table-macros = "0.1.0"
 ```
 
 ### Gamma Encoding Example (Default)
 
 ```rust
-use gamma_correction_proc::gamma_table;
+use gamma_table_macros::gamma_table;
 
 // Generate a gamma encoding table (default behavior)
 gamma_table! {
@@ -46,7 +46,7 @@ fn main() {
 ### Gamma Correction/Decoding Example
 
 ```rust
-use gamma_correction_proc::gamma_table;
+use gamma_table_macros::gamma_table;
 
 // Generate a gamma correction/decoding table
 gamma_table! {

@@ -15,7 +15,7 @@
 ///
 /// Gamma encoding (default):
 /// ```
-/// use gamma_correction_proc::gamma_table;
+/// use gamma_table_macros::gamma_table;
 ///
 /// gamma_table! {
 ///     name: GAMMA_ENCODED_TABLE,
@@ -27,7 +27,7 @@
 ///
 /// Gamma correction/decoding:
 /// ```
-/// use gamma_correction_proc::gamma_table;
+/// use gamma_table_macros::gamma_table;
 ///
 /// gamma_table! {
 ///     name: GAMMA_DECODED_TABLE,

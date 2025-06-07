@@ -1,12 +1,12 @@
 [package]
-name = "gamma-correction-proc"
+name = "gamma-table-macros"
 version = "0.1.0"
 authors = ["Christopher B. Liebman <liebman@zod.com>"]
 edition = "2021"
 license = "MIT OR Apache-2.0"
 description = "A procedural macro for generating gamma correction lookup tables"
-repository = "https://github.com/liebman/gamma-correction-proc"
-documentation = "https://docs.rs/gamma-correction-proc"
+repository = "https://github.com/liebman/gamma-table-macros"
+documentation = "https://docs.rs/gamma-table-macros"
 keywords = ["gamma", "correction", "lookup-table", "proc-macro", "graphics"]
 categories = ["graphics", "algorithms", "development-tools::procedural-macro-helpers"]
 readme = "README.md"

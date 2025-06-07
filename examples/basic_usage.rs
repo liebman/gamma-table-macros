@@ -1,4 +1,4 @@
-use gamma_correction_proc::gamma_table;
+use gamma_table_macros::gamma_table;
 
 // Generate a gamma encoding table (default behavior)
 gamma_table! {
